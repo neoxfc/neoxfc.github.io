@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neo X FC Members Profile</title>
+    <title>Profil Ahli Neo X FC (Firestore)</title>
     <!-- Font dan Ikon (Material Symbols) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -279,7 +279,7 @@
                 <img id="card-avatar" class="card-avatar" src="https://placehold.co/140x140/94a3b8/ffffff?text=AVATAR" onerror="this.src='https://placehold.co/140x140/94a3b8/ffffff?text=AVATAR';" alt="Member Avatar">
                 
                 <!-- Placeholder Data -->
-                <h1 class="member-name" id="member-name">Getting data...</h1>
+                <h1 class="member-name" id="member-name">Memuatkan Data...</h1>
                 <h2 class="member-id" id="member-id">NEOX-xxxxxx</h2>
                 <h3 class="member-status" id="member-status">Status: ...</h3>
             </div>
@@ -300,7 +300,7 @@
                             </div>
                             <div class="card-contact">
                                 <span class="material-symbols-outlined">cake</span>
-                                <span id="umur">... years old</span>
+                                <span id="umur">...</span>
                             </div>
                             <div class="card-contact">
                                 <span class="material-symbols-outlined">person</span>
@@ -344,7 +344,7 @@
             <h3 class="promo-title">EXCLUSIVE PROMO FOR YOU</h3>
             <div id="promotions-container">
                 <!-- Promo akan dimasukkan di sini oleh JavaScript -->
-                <p class="text-center text-white/50">Getting latest promo...</p>
+                <p class="text-center text-white/50">Menunggu data...</p>
             </div>
         </div>
 
@@ -359,13 +359,35 @@
     </div>
 
 
-    <script>
+    <script type="module">
+        // Import Firebase SDKs (Guna URL CDN yang disyorkan)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // setLogLevel('Debug'); // Untuk debugging
+
         // ====================================================================
-        // ⚠️ MANDATORI: GANTIKAN DENGAN URL WEB APP GAS ANDA SEBENAR
+        // ⚠️ FIREBASE & CANVAS CONFIG
+        // 🔥 PENTING: Hardcode APP_ID kepada 'neoxfc' agar sepadan dengan GAS
         // ====================================================================
-        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxK08zFzQV_JZiWe_GOxDvP0jDFEocQSvJItC_RC9_bzAZ8yEu6powXscFiesgphhJy/exec';
-        // ====================================================================
+        const appId = 'neoxfc'; 
+        const firebaseConfig = {
+            apiKey: "AIzaSyDA3etw8bBF3t-j3b3msxWiLZnzLUuwIEo",
+            authDomain: "neoxfcmembership.firebaseapp.com",
+            projectId: "neoxfcmembership",
+            storageBucket: "neoxfcmembership.firebasestorage.app",
+            messagingSenderId: "533933925094",
+            appId: "1:533933925094:web:5ad77259ed6312affe1127",
+            measurementId: "G-VVWGE84944"
+        };
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
+        let db = null;
+        let auth = null;
+        // ====================================================================
+
         // Elemen UI
         const cardEl = document.getElementById('member-card');
         const memberNameEl = document.getElementById('member-name');
@@ -383,16 +405,14 @@
         
         const defaultAvatarUrl = 'https://placehold.co/140x140/94a3b8/ffffff?text=AVATAR'; // Gambar default
 
-        // Logik Tab (Dikemas kini mengikut permintaan anda)
+        // Logik Tab (Kekal sama)
         const buttons = document.querySelectorAll(".card-buttons button");
         const sections = document.querySelectorAll(".card-section");
-        // Menggunakan cardEl yang telah didefinisi di atas
 
         const handleButtonClick = (e) => {
             const targetSection = e.target.getAttribute("data-section");
             const section = document.querySelector(targetSection);
             
-            // Menggunakan cardEl
             if (targetSection !== "#about") {
                 cardEl.classList.add("is-active");
             } else {
@@ -418,7 +438,6 @@
             try {
                 const urlParams = new URLSearchParams(window.location.search);
                 const id = urlParams.get('id');
-                // Sentiasa memastikan ID dalam huruf besar untuk padanan yang konsisten
                 return id ? id.toUpperCase() : null; 
             } catch (e) {
                 console.error("Error reading URL parameters:", e);
@@ -437,6 +456,9 @@
             // Mengemaskini styling status
             memberStatusEl.style.color = '#fff';
             memberStatusEl.style.fontWeight = '500';
+            memberStatusEl.style.padding = '4px 8px';
+            memberStatusEl.style.borderRadius = '8px';
+
             if (profile.status === 'ACTIVE') {
                 memberStatusEl.style.backgroundColor = '#16a34a'; // Hijau
             } else if (profile.status === 'EXPIRED') {
@@ -447,17 +469,17 @@
             }
             
             // Data Profil
-            memberNameEl.textContent = profile.nama;
-            memberIdEl.textContent = profile.id;
-            icPassportEl.textContent = profile.icPassport;
-            tarikhLahirEl.textContent = profile.tarikhLahir;
-            umurEl.textContent = profile.umur;
-            genderEl.textContent = profile.gender;
-            addressEl.textContent = profile.alamat; // Alamat
-            telefonEl.textContent = profile.telefon;
-            emailEl.textContent = profile.email;
+            memberNameEl.textContent = profile.nama || 'N/A';
+            memberIdEl.textContent = profile.id || 'N/A';
+            icPassportEl.textContent = profile.icPassport || 'N/A';
+            tarikhLahirEl.textContent = profile.tarikhLahir || 'N/A';
+            umurEl.textContent = profile.umur || 'N/A';
+            genderEl.textContent = profile.gender || 'N/A';
+            addressEl.textContent = profile.alamat || 'N/A'; // Alamat
+            telefonEl.textContent = profile.telefon || 'N/A';
+            emailEl.textContent = profile.email || 'N/A';
             
-            // Avatar (Jika anda menambah kolum avatar URL)
+            // Avatar 
             if (profile.avatar_url && profile.avatar_url.startsWith('http')) {
                  avatarEl.src = profile.avatar_url;
             } else {
@@ -489,7 +511,7 @@
                     promotionsContainer.appendChild(promoDiv);
                 });
             } else {
-                promotionsContainer.innerHTML = '<p class="text-center text-gray-400">There is no promotion at the moment.</p>';
+                promotionsContainer.innerHTML = '<p class="text-center text-gray-400">Tiada Promosi Eksklusif buat masa ini.</p>';
             }
         }
 
@@ -502,61 +524,117 @@
             
             // Kemaskini Header
             memberNameEl.textContent = message;
-            memberIdEl.textContent = memberId || "CAN'T FIND ID";
-            memberStatusEl.textContent = "Status: NOT VALID";
+            memberIdEl.textContent = memberId || "TIADA ID";
+            memberStatusEl.textContent = "Status: TIDAK SAH / RALAT";
             memberStatusEl.style.backgroundColor = '#991b1b';
+            memberStatusEl.style.color = '#fff';
             
             // Sembunyikan bahagian contact/details yang kosong
             document.getElementById('about').innerHTML = `<p class="p-6 text-red-800 font-medium">${message}</p>`;
-            document.getElementById('contact').innerHTML = `<p class="p-6 text-red-800 font-medium">Please contact us at neoxfootballclub@gmail.com</p>`;
+            document.getElementById('contact').innerHTML = `<p class="p-6 text-red-800 font-medium">Sila hubungi Admin Kelab.</p>`;
         }
 
 
         /**
-         * Fungsi utama untuk memuatkan data.
+         * Fungsi utama untuk memuatkan data dari Firestore.
          */
         async function loadData() {
             const memberId = getMemberIdFromUrl();
 
             if (!memberId) {
-                setErrorState("PLEASE SCAN VALID NEO X FCMEMBERSHIP CARD", "");
-                renderPromotions([]); // Masih memaparkan bahagian promosi (jika ada)
+                setErrorState("SILA IMBAS KAD NFC YANG SAH", "");
+                renderPromotions([]); 
                 return;
             }
 
             try {
-                // 1. Fetch data dari GAS API (menggunakan ID ahli sebagai parameter)
-                const apiUrlWithId = `${GAS_API_URL}?id=${memberId}`;
-                
-                const response = await fetch(apiUrlWithId);
-                
-                if (!response.ok) {
-                    throw new Error(`Ralat HTTP: ${response.status}`);
-                }
+                // 1. Dapatkan data Ahli (Public Data)
+                // Path: /artifacts/neoxfc/public/data/members/{memberId}
+                const memberDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'members', memberId);
+                const memberSnapshot = await getDoc(memberDocRef);
 
-                const data = await response.json(); // Data JSON mengandungi { profile: {...}, promotions: [...] }
+                // 2. Dapatkan data Promosi (Public Data)
+                // Path: /artifacts/neoxfc/public/data/settings/promotions
+                const promoDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'promotions');
+                const promoSnapshot = await getDoc(promoDocRef);
                 
-                // 2. Render Promosi (Sentiasa lakukan ini, walaupun profil ralat)
-                renderPromotions(data.promotions);
+                // Render Promosi (Sentiasa lakukan ini)
+                const promotions = promoSnapshot.exists() && promoSnapshot.data().list ? promoSnapshot.data().list : [];
+                renderPromotions(promotions);
 
-                // 3. Semak dan Render Profil Ahli
-                if (data.profile) {
-                    updateMemberUI(data.profile);
+
+                // Semak dan Render Profil Ahli
+                if (memberSnapshot.exists()) {
+                    const profileData = memberSnapshot.data();
+                    
+                    // Lakukan semakan status di client (seperti yang dilakukan di GAS)
+                    let status = "EXPIRED";
+                    const expDateStr = profileData.tarikhLuput;
+                    
+                    // Asumsi tarikhLuput disimpan sebagai 'DD/MM/YYYY' (seperti format GAS)
+                    if (expDateStr && expDateStr.includes('/')) {
+                        const parts = expDateStr.split('/');
+                        // Perhatian: new Date(year, monthIndex, day)
+                        const expDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        const currentDate = new Date();
+                        
+                        // Set jam, minit, saat pada 00:00:00 untuk perbandingan tarikh sahaja
+                        currentDate.setHours(0, 0, 0, 0); 
+                        expDate.setHours(0, 0, 0, 0);
+                        
+                        if (expDate.getTime() >= currentDate.getTime()) {
+                            status = "ACTIVE";
+                        }
+                    } else {
+                         status = "STATUS NOT VALID";
+                    }
+
+                    // Gabungkan status dan kemaskini UI
+                    updateMemberUI({ ...profileData, status });
                     cardEl.classList.remove('loading-state');
+                    
                 } else {
-                    // Ahli tidak ditemui dalam Google Sheet
-                    setErrorState(`ID Ahli ${memberId} RECORD NOT FOUND.`, memberId);
+                    // Ahli tidak ditemui dalam Firestore
+                    setErrorState(`ID Ahli ${memberId} TIDAK DITEMUI DALAM REKOD.`, memberId);
                 }
 
             } catch (error) {
-                // Ralat Sambungan atau API
-                console.error("Fatal Error fetching GAS data:", error);
-                setErrorState("ERROR: Failed to connect to club's data.", memberId);
+                console.error("Fatal Error fetching Firestore data:", error);
+                setErrorState("RALAT PANGKALAN DATA: Gagal menghubungi Firestore. Sila semak peraturan keselamatan.", memberId);
+            }
+        }
+        
+        /**
+         * Firebase Initialization and Authentication.
+         */
+        async function initFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length === 0 || !firebaseConfig.projectId) {
+                    console.error("Firebase config is missing or invalid.");
+                    setErrorState("RALAT APLIKASI: Konfigurasi Firebase Tiada.", null);
+                    return;
+                }
+
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                // Walaupun kita menggunakan pautan awam, authentication diperlukan untuk sambungan Firestore.
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                await loadData();
+            } catch (error) {
+                console.error("Firebase initialization or auth failed:", error);
+                setErrorState("RALAT AUTENTIKASI: Gagal log masuk ke Firestore.", null);
             }
         }
 
-        // Jalankan fungsi memuatkan data apabila laman web siap
-        window.onload = loadData;
+        // Jalankan inisialisasi Firebase apabila laman web siap
+        window.onload = initFirebase;
 
     </script>
 
