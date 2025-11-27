@@ -114,10 +114,6 @@
             font-weight: 500;
             line-height: 12px;
             margin-top: 10px;
-            padding: 8px;
-            border-radius: 8px;
-            width: fit-content;
-            margin: auto;
         }
 
         /* SECTION KANDUNGAN */
@@ -460,8 +456,11 @@
             // Mengemaskini styling status
             memberStatusEl.style.color = '#fff';
             memberStatusEl.style.fontWeight = '500';
-            memberStatusEl.style.padding = '4px 8px';
+            memberStatusEl.style.padding = '8px';
             memberStatusEl.style.borderRadius = '8px';
+            memberStatusEl.style.width = 'fit-content';
+            memberStatusEl.style.margin = 'auto';
+
 
             if (profile.status === 'ACTIVE') {
                 memberStatusEl.style.backgroundColor = '#16a34a'; // Hijau
